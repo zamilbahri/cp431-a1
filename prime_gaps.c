@@ -1,19 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-//#include "/usr/lib/x86_64-linux-gnu/mpich/include/mpi.h"
 #include "mpi.h"
 
 /*
 Issues:
-- Can't link the gap to their associated prime(s) with MPI_Reduce
 - If the largest gap exists between the last prime in one thread, and first prime in second thread,
 	then that gap will not be recognized.
 - Efficiency issue: dividing N into equally sized chunks is not efficient, since it takes much longer
 	to for larger numbers to check if they are prime, than smaller numbers.
 */
 
-#define N 100
+#define N 1000
 #define MAX(A, B) (A > B ? A : B)
 #define MIN(A, B) (A < B ? A : B)
 
@@ -63,6 +61,7 @@ int main(int argc, char** argv) {
 		int prime;
 		int prev = -1;
 
+		int local_primegap[2];
 		// Strategy, we only need to check numbers of the form 6k-1 and 6k+1.
 		//	Why? Because:
 		// 	6k, 6k+2, 6k+4 are divisble by 2
@@ -87,11 +86,11 @@ int main(int argc, char** argv) {
 		}
 
 		// Start with number of the form 6k-1, then check
-		// 6k+1, then incremenet
+		// 6k+1, then increment by 6
     for (int i = 0; start + i < end; i+=6) {
         if (isPrime(start + i)) {
 					// set "previous" prime to the first prime encountered in this thread
-					if (prev < 0) prev = start+i;
+					if (prev < 0) prev = start + i;
 
 					if (start + i - prev >= gap) {
 						gap = start+i-prev;
@@ -103,7 +102,7 @@ int main(int argc, char** argv) {
 
         if (start + i+2 < end && isPrime(start + i+2)) {
 					// set "previous" prime to the first prime encountered in this thread
-					if (prev < 0) prev = start+i;
+					if (prev < 0) prev = start + i+2;
 
 					if (start + i+2 - prev >= gap) {
 						gap = start + i+2 - prev;
@@ -114,17 +113,18 @@ int main(int argc, char** argv) {
 				}
     }
 
-		printf("rank: %d, start: %d, end: %d, gap: %d prime: %d\n", rank, start, end, gap, prime);
+		local_primegap[0] = gap;
+		local_primegap[1] = prime;
+		//printf("rank: %d, start: %d, end: %d, gap: %d prime: %d\n", rank, start, end, gap, prime);
 
-    int largest_gap;
-		int upper_prime;
-    MPI_Reduce(&gap, &largest_gap, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&prime, &upper_prime, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+    int global_primegap[2];
+    MPI_Reduce(local_primegap, global_primegap, 1, MPI_2INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
+
 
     if (rank == 0) {
-			printf("Largest gap in primes less than %d: %d\n which occured between %d and %d\n", N, largest_gap, upper_prime-largest_gap, upper_prime);
+			printf("Largest gap in primes less than %d: %d\n which occured between %d and %d\n", N, global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
     }
-		
+
     // Finalize the MPI environment.
     MPI_Finalize();
 }
