@@ -3,9 +3,14 @@
 #include <math.h>
 #include "mpi.h"
 
-#define N 1000
+#define N 1000000
 #define MAX(A, B) (A > B ? A : B)
 #define MIN(A, B) (A < B ? A : B)
+
+typedef struct ProcessInfo {
+	int first_prime;
+	int last_prime;
+} ProcessInfo;
 
 int isPrime(int n) {
 		if (n <= 1) return 0;
@@ -65,11 +70,14 @@ int main(int argc, char** argv) {
 			start++;
 		}
 
+		ProcessInfo pi;
+
 		// if start is of the form of 6k+1, then we check separately,
 		//	then increment by 4 instead of the usual 6. This makes
 		//	the next number of the form 6k-1
 		if (start % 6 == 1) {
 			if (isPrime(start)) {
+				pi.first_prime = start;
 				prime = start;
 				prev = start;
 				count++;
@@ -82,7 +90,10 @@ int main(int argc, char** argv) {
     for (int i = 0; start + i < end; i+=6) {
         if (isPrime(start + i)) {
 					// set "previous" prime to the first prime encountered in this thread
-					if (prev < 0) prev = start + i;
+					if (prev < 0) {
+						pi.first_prime = start + i;
+						prev = start + i;
+					}
 
 					if (start + i - prev >= gap) {
 						gap = start+i-prev;
@@ -94,7 +105,10 @@ int main(int argc, char** argv) {
 
         if (start + i+2 < end && isPrime(start + i+2)) {
 					// set "previous" prime to the first prime encountered in this thread
-					if (prev < 0) prev = start + i+2;
+					if (prev < 0) {
+						pi.first_prime = start + i+2;
+						prev = start + i+2;
+					}
 
 					if (start + i+2 - prev >= gap) {
 						gap = start + i+2 - prev;
@@ -105,13 +119,42 @@ int main(int argc, char** argv) {
 				}
     }
 
+		pi.last_prime = prev;
+
 		local_primegap[0] = gap;
 		local_primegap[1] = prime;
 		//printf("rank: %d, start: %d, end: %d, gap: %d prime: %d\n", rank, start, end, gap, prime);
 
+		if (rank != 0) {
+			MPI_Send(&pi, 2, MPI_INT, 0, 1, MPI_COMM_WORLD);
+		}
+
     int global_primegap[2];
     MPI_Reduce(local_primegap, global_primegap, 1, MPI_2INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
 
+		if (rank == 0) {
+			int first_last_primes[size*2];
+			first_last_primes[0] = pi.first_prime;
+			first_last_primes[1] = pi.last_prime;
+
+			ProcessInfo temp;
+			MPI_Status status;
+			for (int i=1; i < size; ++i) {
+				MPI_Recv(&pi, 2, MPI_INT, i, 1, MPI_COMM_WORLD, &status);
+				first_last_primes[i*2] = pi.first_prime;
+				first_last_primes[i*2+1] = pi.last_prime;
+			}
+
+			int diff;
+			
+			for (int i = 2; i < size*2-1; i+=2) {
+				diff = first_last_primes[i] - first_last_primes[i-1];
+				if (diff > global_primegap[0]) {
+					global_primegap[0] = diff;
+					global_primegap[1] = first_last_primes[i];
+				}
+			}
+		}
 
     if (rank == 0) {
 			printf("Largest gap in primes less than %d: %d\n which occured between %d and %d\n", N, global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
@@ -121,3 +164,4 @@ int main(int argc, char** argv) {
     MPI_Finalize();
 }
 
+ 
