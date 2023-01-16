@@ -125,28 +125,36 @@ int main(int argc, char** argv) {
 		local_primegap[1] = prime;
 		//printf("rank: %d, start: %d, end: %d, gap: %d prime: %d\n", rank, start, end, gap, prime);
 
+		// Send first prime and last prime info to the root processor (0).
 		if (rank != 0) {
 			MPI_Send(&pi, 2, MPI_INT, 0, 1, MPI_COMM_WORLD);
 		}
 
     int global_primegap[2];
     MPI_Reduce(local_primegap, global_primegap, 1, MPI_2INT, MPI_MAXLOC, 0, MPI_COMM_WORLD);
-
+		
+		// Find if the gaps between the last prime in some thread, and the first prime in the following thread
+		//	is larger than the one found using MPI_Reduce()
 		if (rank == 0) {
+
+			// initialize an array to store the first and last primes from each processor
 			int first_last_primes[size*2];
+
+			// store first and last primes from root processor
 			first_last_primes[0] = pi.first_prime;
 			first_last_primes[1] = pi.last_prime;
 
-			ProcessInfo temp;
+			// get first and last primes from other processors
 			MPI_Status status;
 			for (int i=1; i < size; ++i) {
+				// Can reuse "pi" variable since info has alraedy been stored in array.
 				MPI_Recv(&pi, 2, MPI_INT, i, 1, MPI_COMM_WORLD, &status);
 				first_last_primes[i*2] = pi.first_prime;
 				first_last_primes[i*2+1] = pi.last_prime;
 			}
 
+			// check if previous best prime gap has been beat
 			int diff;
-			
 			for (int i = 2; i < size*2-1; i+=2) {
 				diff = first_last_primes[i] - first_last_primes[i-1];
 				if (diff > global_primegap[0]) {
@@ -154,11 +162,9 @@ int main(int argc, char** argv) {
 					global_primegap[1] = first_last_primes[i];
 				}
 			}
-		}
 
-    if (rank == 0) {
 			printf("Largest gap in primes less than %d: %d\n which occured between %d and %d\n", N, global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
-    }
+		}
 
     // Finalize the MPI environment.
     MPI_Finalize();
