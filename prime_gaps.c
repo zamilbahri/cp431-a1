@@ -3,7 +3,6 @@
 #include <math.h>
 #include "mpi.h"
 
-#define N 1000000
 #define MAX(A, B) (A > B ? A : B)
 #define MIN(A, B) (A < B ? A : B)
 
@@ -15,7 +14,6 @@ typedef struct ProcessInfo {
 int isPrime(int n) {
 		if (n <= 1) return 0;
     if (n <= 3) return 1;
-    //if (n % 2 == 0 || n % 3 == 0) return 0;
     
     for (int i=5; i*i <= n; i += 6) {
         if (n % i == 0 || n % (i + 2) == 0) return 0;
@@ -41,6 +39,7 @@ int isPrime(int n) {
 int main(int argc, char** argv) {
     // Initialize the MPI environment
 		int rank, size;
+		int N = atoi(argv[1]);
 		
     MPI_Init(&argc, &argv);
 
@@ -53,9 +52,9 @@ int main(int argc, char** argv) {
 		int start = 5 + rank * (N/size);
 		int end = MIN(start + (N/size), N);
 
-		int gap = 0;
-		int prime;
-		int prev = -1;
+		int gap = 0; // running gap between primes
+		int prime; // stores the prime associated with the largest gap
+		int prev = -1; // keeps track of previous prime
 
 		int local_primegap[2]; // stores largest gap and the prime associated with it.
 		ProcessInfo pi; // stores the first and last primes in this process
