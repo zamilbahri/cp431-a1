@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include "mpi.h"
+#include <time.h>
 
 #define MAX(A, B) (A > B ? A : B)
 #define MIN(A, B) (A < B ? A : B)
@@ -14,6 +14,7 @@ typedef struct ProcessInfo {
 int isPrime(int n) {
 		if (n <= 1) return 0;
     if (n <= 3) return 1;
+		if (n % 2 == 0 || n % 3 == 0) return 0;
     
     for (int i=5; i*i <= n; i += 6) {
         if (n % i == 0 || n % (i + 2) == 0) return 0;
@@ -40,7 +41,9 @@ int main(int argc, char** argv) {
     // Initialize the MPI environment
 		int rank, size;
 		int N = atoi(argv[1]);
-		
+		clock_t cstart, cend;
+		double cpu_time_used;
+
     MPI_Init(&argc, &argv);
 
     // Get the number of processes
@@ -48,6 +51,8 @@ int main(int argc, char** argv) {
 
     // Get the rank of the process
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+		cstart = clock();
 
 		int start = 5 + rank * (N/size);
 		int end = MIN(start + (N/size), N);
@@ -157,6 +162,10 @@ int main(int argc, char** argv) {
 					global_primegap[1] = first_last_primes[i];
 				}
 			}
+
+			cend = clock();
+			cpu_time_used = ((double) (end-start)) / CLOCKS_PER_SEC;
+			printf("Program took %f seconds to execute \n", cpu_time_used);
 
 			printf("Largest gap in primes less than %d: %d\n which occured between %d and %d\n", N, global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
 		}
