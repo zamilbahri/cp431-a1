@@ -58,6 +58,8 @@ int main(int argc, char** argv) {
 		int start = 5 + rank * (N/size);
 		int end = MIN(start + (N/size), N);
 
+		int localcount=0;
+
 		mpz_t mpz_prime;
 		mpz_init(mpz_prime);
 
@@ -95,6 +97,7 @@ int main(int argc, char** argv) {
 		// Start with number of the form 6k-1, then check
 		// 6k+1, then increment by 6
     for (int i = 0; start + i < end; i+=6) {
+				localcount++;
 				mpz_set_ui(mpz_prime, (unsigned long) start+i);
         if (mpz_probab_prime_p(mpz_prime, REPS) >= 1) {
 					// set "previous" prime to the first prime encountered in this thread
@@ -125,6 +128,8 @@ int main(int argc, char** argv) {
 					prev = start + i+2;
 				}
     }
+		time2 = MPI_Wtime();
+		duration = time2-time1;
 
 		pi.last_prime = prev;
 
@@ -141,8 +146,8 @@ int main(int argc, char** argv) {
     int global_primegap[2];
     MPI_Reduce(local_primegap, global_primegap, 2, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
 
-		time2 = MPI_Wtime();
-		duration = time2-time1;
+		int globalcount;
+		MPI_Reduce(&localcount, &globalcount, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
 		MPI_Reduce(&duration, &global, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);		
 		
@@ -178,6 +183,7 @@ int main(int argc, char** argv) {
 
 			printf("Largest gap in primes less than %d: %d\n which occured between %d and %d\n", N, global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
 			printf("global runtime is %f\n", global);
+			printf("%d loops\n", globalcount);
 		}
 
     // Finalize the MPI environment.
