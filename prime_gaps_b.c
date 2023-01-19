@@ -27,9 +27,12 @@ int main(int argc, char** argv) {
 		flag_N = mpz_set_str(N, argv[1], 10);
 		assert (flag_N == 0);
 
+		// timer variables
 		double time1, time2, duration, global;
 
     MPI_Init(&argc, &argv);
+
+		// start timer
 		time1 = MPI_Wtime();
 
     // Get the number of processes
@@ -41,6 +44,7 @@ int main(int argc, char** argv) {
 		int flag;
 		mpz_t start, end, gap, prime, prev, load;
 
+		// Initialize above mpz_t variables
 		mpz_init(start);
 		mpz_init(end);
 		mpz_init(gap);
@@ -59,6 +63,8 @@ int main(int argc, char** argv) {
 		mpz_div_ui(load, N, size);
 		mpz_mul_ui(start, load, rank);
 		mpz_add(end, start, load);
+
+		int localcount = 0;
 
 		mpz_t local_primegap[2]; // stores largest gap and the prime associated with it.
 		mpz_t first_last_primes[2]; // stores the first and last primes in this process
@@ -80,8 +86,10 @@ int main(int argc, char** argv) {
 
 		mpz_set(first_last_primes[0], prime);
 
+		// start timer
+		time1 = MPI_Wtime();
 		while (1) {
-
+			localcount++;
 			mpz_nextprime(prime, prime);
 			if (mpz_cmp(prime, end) > 0) {
 				mpz_set(first_last_primes[1], prev);
@@ -96,6 +104,8 @@ int main(int argc, char** argv) {
 
 			mpz_set(prev, prime);
 		}
+		time2 = MPI_Wtime();
+		duration = time2-time1;
 
 		// send first and last primes to root thread
 		first_last_primes_ui[0] = mpz_get_ui(first_last_primes[0]);
@@ -114,8 +124,8 @@ int main(int argc, char** argv) {
 		unsigned long global_primegap[2];
 		MPI_Reduce(local_primegap_ui, global_primegap, 2, MPI_UNSIGNED_LONG, MPI_MAX, 0, MPI_COMM_WORLD);
 
-		time2 = MPI_Wtime();
-		duration = time2-time1;
+		int globalcount;
+		MPI_Reduce(&localcount, &globalcount, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
 		MPI_Reduce(&duration, &global, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
@@ -152,6 +162,7 @@ int main(int argc, char** argv) {
 
 			printf("max gap = %lu, between %lu and %lu\n", global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
 			printf("global runtime is %f\n", global);
+			printf("%d loops\n", globalcount);
 		}
 		// printf("Runtime at %d is %f\n",rank, duration);
 
