@@ -85,8 +85,7 @@ int main(int argc, char** argv) {
 
 			mpz_nextprime(prime, prime);
 
-			// break loop if prime > end.
-			// Flaw: This prime gets calculated but then ignored.
+			// break loop if prime > end. Record the last prime encountered
 			if (mpz_cmp(prime, end) > 0) {
 				mpz_set(first_last_primes[1], prev);
 				break;
