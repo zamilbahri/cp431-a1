@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
 				// Can reuse first_last_primes since it'sinfo has already been recorded
 				MPI_Recv(first_last_primes, 2, MPI_UNSIGNED_LONG, i, 1, MPI_COMM_WORLD, &status);
 				all_first_last_primes[i*2] = first_last_primes[0];
-				all_first_last_primes[i*2+1] = first_last_primes;
+				all_first_last_primes[i*2+1] = first_last_primes[1];
 			}
 
 			// check if previous best prime gap has been beat
@@ -152,7 +152,7 @@ int main(int argc, char** argv) {
 				}
 			}
 
-			printf("Largest gap in primes less than %lu: %lu\n which occured between %lu and %lu\n", N, global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
+			printf("Largest gap less than %lu: %lu between %lu and %lu\n", N, global_primegap[0], global_primegap[1]-global_primegap[0], global_primegap[1]);
 			printf("global runtime is %f\n", global);
 		}
 
