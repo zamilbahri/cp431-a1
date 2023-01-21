@@ -1,10 +1,6 @@
 <h1>Prime Gaps</h1>
 
-<<<<<<< HEAD
 This program finds the largest gap between two consecutive primes less than some positive integer N. It also outputs two prime numbers in the range [1, N] that realize the largest gap found. It uses the MPI protocol and the GMP library or prime number related computations. Currently, it can run in a reasonable time for N \< 10 billion.
-=======
-This program finds the largest gap between two consecutive primes less than some positive integer N. It also outputs two prime numbers in the range [1, N] that realize the largest gap found. Currently, it can run in a reasonable time for N \< 10 billion. 
->>>>>>> 1bf5b9deb266d4beccbbc41832a5438a8942fdc2
 
 prime_gaps_a.c only looks at numbers of the form 6k+1 or 6k-1, and the GMP library's mpz_probab_prime_p() function to find primes, and keeps a running track of the gaps to determine the largest one.
 
