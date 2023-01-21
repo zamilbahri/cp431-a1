@@ -164,12 +164,12 @@ int main(int argc, char** argv) {
 
 		mpz_t leftover; mpz_init(leftover);
 		mpz_sub(leftover, end, prev);
-		printf("rank=%d, start=%lu, prev=%lu, end=%lu, leftover=%lu\n", rank, mpz_get_ui(start), mpz_get_ui(prev), mpz_get_ui(end), mpz_get_ui(leftover));
+		// printf("rank=%d, start=%lu, prev=%lu, end=%lu, leftover=%lu\n", rank, mpz_get_ui(start), mpz_get_ui(prev), mpz_get_ui(end), mpz_get_ui(leftover));
 
 		MPI_Barrier(MPI_COMM_WORLD);
 
 		if (mpz_cmp(end, prev) > 0) {
-			printf("rank %d needs to continue\n", rank);
+			// printf("rank %d needs to continue\n", rank);
 			while (1) {
 				mpz_nextprime(prime, prime);
 
