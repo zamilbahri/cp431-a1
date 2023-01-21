@@ -19,7 +19,7 @@ Update Ubuntu:
 
 Install MPI:
 
-	sudo apt install mpicc
+	sudo apt install mpich
 
 Install GMP:
 
