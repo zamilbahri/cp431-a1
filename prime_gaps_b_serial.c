@@ -3,6 +3,7 @@
 #include <gmp.h>
 #include <math.h>
 #include <assert.h>
+#include <time.h>
 
 #define MAX(A, B) (A > B ? A : B)
 #define MIN(A, B) (A < B ? A : B)
@@ -40,12 +41,17 @@ void mpz_assign(mpz_t dest, mpz_t src) {
 	mpz_set(dest, src);
 }
 
-void find_largest_gap(double num_primes, mpz_t prime, mpz_t gap, mpz_t prev, mpz_t local_primegap[2]) {
-	for (double i = 0; i < num_primes; i++) {
+void find_largest_gap(double num_primes, mpz_t end, mpz_t prime, mpz_t gap, mpz_t prev, mpz_t local_primegap[2], mpz_t first_last_primes[2]) {
+	// for (double i = 0; i < num_primes; i++) {
+	while (1) {
 			
 			get_next_prime(prime, prime);
 
 			// break loop if prime > end. Record the last prime encountered
+			if (mpz_cmp(prime, end) > 0) {
+				mpz_set(first_last_primes[1], prev);
+				break;
+			}
 
 			// calculate the gap between current and previous prime
 			mpz_subtract(gap, prime, prev);
@@ -75,7 +81,7 @@ int main(int argc, char** argv) {
 		assert (flag_N == 0);
 
 		// timer variables
-		// double time1, time2, duration, global_duration;
+		clock_t t;
 
 		int flag;
 		mpz_t start, end, gap, prime, prev, load;
@@ -101,10 +107,7 @@ int main(int argc, char** argv) {
 		mpz_add(end, start, load);
 
 		double num_primes = li(mpz_get_ui(end));
-		// double num_primes = 16252325;
-		//  double num_primes = 11078937;
-		// double num_primes = 5761455;
-		printf("num primes %lf\n", num_primes);
+		//printf("num primes %lf\n", num_primes);
 
 		mpz_t local_primegap[2]; // stores largest gap and the prime associated with it.
 		mpz_t first_last_primes[2]; // stores the first and last primes in this process
@@ -124,36 +127,10 @@ int main(int argc, char** argv) {
 		mpz_set(local_primegap[0], gap);
 		mpz_set(local_primegap[1], prime);
 
-		// start timer
-		// time1 = MPI_Wtime();
-
-		// for (double i = 0; i < num_primes; i++) {
-			
-		// 	get_next_prime(prime, prime);
-
-		// 	// break loop if prime > end. Record the last prime encountered
-
-		// 	// calculate the gap between current and previous prime
-		// 	mpz_subtract(gap, prime, prev);
-
-		// 	// if this is the largest gap, then record it and the associated prime
-		// 	if (mpz_compare(gap, local_primegap[0]) >= 0) {
-		// 		mpz_assign(local_primegap[0], gap);
-		// 		mpz_assign(local_primegap[1], prime);
-		// 	}
-
-		// 	// update previous prime to current prime
-		// 	mpz_assign(prev, prime);
-		// }
-
-		find_largest_gap(num_primes, prime, gap, prev, local_primegap);
-
-		printf("last prime: %lu\n", mpz_get_ui(prev));
-
-		// end timer
-		// time2 = MPI_Wtime();
-		// duration = time2-time1;
-		// printf("rank = %d, local duration = %lf\n", rank, duration);
+		t = clock();
+		find_largest_gap(num_primes, end, prime, gap, prev, local_primegap, first_last_primes);
+		t = clock() - t;
+		double duration = (double) t/CLOCKS_PER_SEC;
 
 		// get the local largest gap and associated prime in the form of unsigned long
 		local_primegap_ui[0] = mpz_get_ui(local_primegap[0]);
@@ -166,7 +143,7 @@ int main(int argc, char** argv) {
 
 			// output
 			printf("max gap = %lu, between %lu and %lu\n", local_primegap_ui[0], local_primegap_ui[1]-local_primegap_ui[0], local_primegap_ui[1]);
-			// printf("global runtime is %f\n", duration);
+			printf("global runtime is %lf\n", duration);
 		}
 
 		return 0;
